@@ -164,6 +164,7 @@ class OMR_EXTENSIBLE Options : public OMR::OptionsConnector
    static bool _doNotProcessEnvVars;
 
    static bool _reportByteCodeInfoAtCatchBlock;
+   static std::unordered_map<std::string, int32_t > _inlining_benefit_stack_alloc;
    /** \brief
     *     Returns the _reportByteCodeInfoAtCatchBlock
     *
@@ -465,7 +466,7 @@ class OMR_EXTENSIBLE Options : public OMR::OptionsConnector
    static const char *loadLimitOption(const char *option, void *, TR::OptionTable *entry);
 
    static const char *loadLimitfileOption(const char *option, void *, TR::OptionTable *entry);
-
+   static const char *inlineResfileOption(const char *option, void *, TR::OptionTable *entry);
 #if defined(J9VM_OPT_JITSERVER)
    static const char *JITServerAOTCacheStoreLimitOption(const char *option, void *, TR::OptionTable *entry);
    static const char *JITServerAOTCacheLoadLimitOption(const char *option, void *, TR::OptionTable *entry);
