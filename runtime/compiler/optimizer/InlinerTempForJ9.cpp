@@ -4066,6 +4066,11 @@ TR_MultipleCallTargetInliner::exceedsSizeThreshold(TR_CallSite *callSite, int by
    if (alwaysWorthInlining(calleeResolvedMethod, callNode))
       return false;
 
+      int32_t stack_alloc_benefit = 0;
+   if (TR::Options::_inlining_benefit_stack_alloc.find(std::string(comp()->signature())) != TR::Options::_inlining_benefit_stack_alloc.end()) {
+      stack_alloc_benefit = TR::Options::_inlining_benefit_stack_alloc[std::string(comp()->signature())];
+      return false; // TODO ARHAAN: Use this information better, right now it just inlines the function if there is _any_ benefit
+   }
    TR_J9InlinerPolicy *j9InlinerPolicy = (TR_J9InlinerPolicy *)getPolicy();
    static const char *polymorphicCalleeSizeThresholdStr = feGetEnv("TR_InlinerPolymorphicConservatismCalleeSize");
    int polymorphicCalleeSizeThreshold = polymorphicCalleeSizeThresholdStr ? atoi(polymorphicCalleeSizeThresholdStr) : 10;

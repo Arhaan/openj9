@@ -304,6 +304,7 @@ bool J9::Options::_aggressiveLockReservation = false;
 
 bool J9::Options::_xrsSync = false;
 
+std::unordered_map<std::string, int32_t> J9::Options::_inlining_benefit_stack_alloc;
 /**
  * This string array should be kept in sync with the
  * J9::ExternalOptions enum in J9Options.hpp
@@ -533,6 +534,53 @@ J9::Options::inlinefileOption(const char *option, void *base, TR::OptionTable *e
       return J9::Options::getDebug()->inlinefileOption(option, base, entry, TR::Options::getJITCmdLineOptions());
       }
    }
+
+const char *
+J9::Options::inlineResfileOption(const char *option, void *base, TR::OptionTable *entry) 
+{
+   // Implementation similar to TR_Debug::limitfileOption
+   const char *endOpt = option;
+   const char *fail = option;
+
+   for (; *endOpt && *endOpt != ','; endOpt++)
+      {}
+   int32_t len = endOpt - option;
+   char *resFileName = (char *)(TR::Compiler->regionAllocator.allocate(len+1));
+   memcpy(resFileName, option, len);
+   resFileName[len] = 0;
+
+   FILE *resFile = fopen(resFileName, "r");
+   if (!resFile) 
+   {
+      TR_VerboseLog::writeLineLocked(TR_Vlog_FAILURE, "Unable to read res file --> '%s'", resFileName);
+      return fail;
+   }
+
+   int num_entries = 0;
+   char *line_buffer = NULL;
+   size_t line_length = 0;
+   while (getline(&line_buffer, &line_length, resFile)!=-1)
+   {
+      std::vector <int32_t> numbers;
+      char whitespace_delim[] = " \t\r\n";
+      char * signature = strtok(line_buffer, whitespace_delim);
+	   if (signature==NULL) break;
+	   char * next_token;
+      int32_t weight;
+      char index_delim[] = " [],\t\r\n";
+	   while ((next_token=strtok(NULL, index_delim))!=NULL) 
+      {
+         if (sscanf(next_token, "%d", &weight))
+         break;
+      }
+      num_entries++;
+      _inlining_benefit_stack_alloc[std::string(signature)]=weight;
+   }
+   free(line_buffer);
+
+   printf("Read %d entries from %s\n", num_entries, resFileName);
+   return endOpt;
+}
 
 
 struct vmX
@@ -937,6 +985,8 @@ TR::OptionTable OMR::Options::_feOptions[] = {
         TR::Options::setStaticNumeric, (intptr_t)&TR::Options::_disableIProfilerClassUnloadThreshold, 0, "F%d", NOT_IN_SUBSET},
    {"dltPostponeThreshold=",      "M<nnn>\tNumber of dlt attempts inv. count for a method is seen not advancing",
         TR::Options::setStaticNumeric, (intptr_t)&TR::Options::_dltPostponeThreshold, 0, "F%d", NOT_IN_SUBSET },
+   {"InlineResfile=", "O\t Interprocedural Static escape analysis results (.res) file path for inlining decisions",
+      TR::Options::inlineResfileOption,  0, 0,  "F%s"},
    {"exclude=",           "D<xxx>\tdo not compile methods beginning with xxx", TR::Options::limitOption, 1, 0, "P%s"},
    {"expensiveCompWeight=", "M<nnn>\tweight of a comp request to be considered expensive",
         TR::Options::setStaticNumeric, (intptr_t)&TR::Options::_expensiveCompWeight, 0, "F%d", NOT_IN_SUBSET },
