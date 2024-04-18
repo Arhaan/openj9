@@ -559,26 +559,48 @@ J9::Options::inlineResfileOption(const char *option, void *base, TR::OptionTable
    int num_entries = 0;
    char *line_buffer = NULL;
    size_t line_length = 0;
+   printf("Functions to be inlined: \n");
    while (getline(&line_buffer, &line_length, resFile)!=-1)
    {
       std::vector <int32_t> numbers;
-      char whitespace_delim[] = " \t\r\n";
+      char whitespace_delim[] = "]";
       char * signature = strtok(line_buffer, whitespace_delim);
-	   if (signature==NULL) break;
+      if (signature==NULL) break;
+      // signature = strtok(NULL, whitespace_delim);
+	   // if (signature==NULL) break;
 	   char * next_token;
-      int32_t weight;
-      char index_delim[] = " [],\t\r\n";
+      int32_t weight=1;
+      char index_delim[] = "|]";
+      
+
 	   while ((next_token=strtok(NULL, index_delim))!=NULL) 
       {
-         if (sscanf(next_token, "%d", &weight))
-         break;
+         std::string trimmed_part = std::string(next_token);  
+         int start_pos = 0;
+         for(; start_pos < trimmed_part.length(); start_pos++){
+            if (std::isupper(trimmed_part[start_pos])){
+               break;
+            }
+         }
+         int end_pos = start_pos; 
+         for(; end_pos < trimmed_part.length(); end_pos++){
+            if (trimmed_part[end_pos] == '['){
+               break;
+            }
+         }
+         if (start_pos != trimmed_part.length()) {
+            std::string name = trimmed_part.substr(start_pos, end_pos-start_pos);
+            printf("%s\n", name.c_str());
+            _inlining_benefit_stack_alloc[name]=weight;
+         }
       }
       num_entries++;
-      _inlining_benefit_stack_alloc[std::string(signature)]=weight;
+      
    }
    free(line_buffer);
 
    printf("Read %d entries from %s\n", num_entries, resFileName);
+   
    return endOpt;
 }
 
@@ -985,8 +1007,10 @@ TR::OptionTable OMR::Options::_feOptions[] = {
         TR::Options::setStaticNumeric, (intptr_t)&TR::Options::_disableIProfilerClassUnloadThreshold, 0, "F%d", NOT_IN_SUBSET},
    {"dltPostponeThreshold=",      "M<nnn>\tNumber of dlt attempts inv. count for a method is seen not advancing",
         TR::Options::setStaticNumeric, (intptr_t)&TR::Options::_dltPostponeThreshold, 0, "F%d", NOT_IN_SUBSET },
-   {"InlineResfile=", "O\t Interprocedural Static escape analysis results (.res) file path for inlining decisions",
+   {"eaResfile=", "O\tStatic escape analysis results (.res) file path",
       TR::Options::inlineResfileOption,  0, 0,  "F%s"},
+   // {"InlineResfile=", "O\t Interprocedural Static escape analysis results (.res) file path for inlining decisions",
+      // TR::Options::inlineResfileOption,  0, 0,  "F%s"},
    {"exclude=",           "D<xxx>\tdo not compile methods beginning with xxx", TR::Options::limitOption, 1, 0, "P%s"},
    {"expensiveCompWeight=", "M<nnn>\tweight of a comp request to be considered expensive",
         TR::Options::setStaticNumeric, (intptr_t)&TR::Options::_expensiveCompWeight, 0, "F%d", NOT_IN_SUBSET },

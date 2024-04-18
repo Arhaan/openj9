@@ -37,6 +37,7 @@ namespace J9 { typedef J9::Options OptionsConnector; }
 #include <stdint.h>
 #include "control/OptionsUtil.hpp"
 #include "env/jittypes.h"
+#include <unordered_map>
 #if defined(J9VM_OPT_JITSERVER)
 namespace TR { class CompilationInfo; }
 namespace TR { class CompilationInfoPerThreadBase; }
